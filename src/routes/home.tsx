@@ -1,25 +1,27 @@
-import React, { useContext } from "react";
-import { Text, View } from "react-native";
+import React, { useContext, useEffect } from "react";
+import { Button, Text, View } from "react-native";
 import { Peripheral } from "react-native-ble-manager";
-import Svg, { SvgUri } from "react-native-svg";
 
-import { PeripheralContext } from "../../App";
+import { PeripheralContext, RootStackParamList } from "../../App";
 import { Style } from "../styles";
 
 import BluetoothIcon from "../assets/icons/bluetooth-outline.svg";
-import { Accordion, Container, Content, Header } from "native-base";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-export function Home(props: any) {
+export function Home(props: NativeStackScreenProps<RootStackParamList, "Home">) {
+    const { navigation, route } = props;
     const peripheralContext = useContext(PeripheralContext)!;
     const iconColor = peripheralContext.peripheral ? "cyan" : "gray";
 
-    const dataArray = [
-        // { title: "ASDF", content: "QWERTYYY" }
-        "ASDF"
-    ];
-
     return (
         <View style={[Style.bodyDark, { flex: 1, alignItems: 'center' }]}>
+            {peripheralContext.peripheral &&
+                <View>
+                    <Text style={[Style.textLarge, {color: "#00bbcc"}]}>
+                        Connected to {peripheralContext.peripheral.name}
+                    </Text>
+                </View>
+            }
             {!peripheralContext.peripheral &&
                 <>
                     <View>
@@ -30,6 +32,7 @@ export function Home(props: any) {
                     </View>
                 </>
             }
+            <Button title="Manage peripheral" onPress={() => navigation.navigate("Peripherals")} />
         </View>
     );
 }

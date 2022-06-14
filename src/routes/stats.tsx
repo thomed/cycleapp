@@ -6,10 +6,8 @@ import { Style } from "../styles";
 import { ServiceUuid } from "../enumerations/service-uuid";
 import { CscMeasurement } from "../classes/csc-measurement";
 import { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../App";
+import { bleManagerEmitter, RootStackParamList } from "../../App";
 
-const BleManagerModule = NativeModules.BleManager;
-const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
 export function Stats(props: NativeStackScreenProps<RootStackParamList, 'Stats'>) {
     const maxHistory = 2;
@@ -165,27 +163,6 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, 'Stats'>
     }, [peripheral, peripheralInfo]);
 
     useEffect(() => {
-        BleManager.start({ showAlert: true }).then(() => {
-            console.log("Bluetooth started");
-        });
-
-        // TODO: Check permissions
-        if (Platform.OS === 'android' && Platform.Version >= 23) {
-            PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION).then((result) => {
-                if (result) {
-                    console.log("Permission is OK");
-                } else {
-                    PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION).then((result) => {
-                        if (result) {
-                            console.log("User accept");
-                        } else {
-                            console.log("User refuse");
-                        }
-                    });
-                }
-            });
-        }
-
         const scanStop: EmitterSubscription = bleManagerEmitter.addListener('BleManagerStopScan', handleScanStop);
         // const deviceDiscovered: EmitterSubscription = bleManagerEmitter.addListener('BleManagerDiscoverPeripheral', handleDeviceDiscovered);
         const peripheralConnected: EmitterSubscription = bleManagerEmitter.addListener('BleManagerConnectPeripheral', handlePeripheralConnect);

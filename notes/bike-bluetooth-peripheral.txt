@@ -1,0 +1,98 @@
+{
+  advertising: {
+    // https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf
+    serviceUUIDs: [
+      "180a", // Device information
+      "1816", // Cycling speed and cadence
+      "1826", // Fitness machine
+    ],
+    txPowerLevel: -2147483648,
+    isConnectable: true,
+    serviceData: {
+	  // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=423422
+      "1826": {
+        bytes: [
+          1, // Cadence supported
+          32,// Reservered for future use ?
+          0, // Average speed supported
+        ],
+        data: "ASAA",
+        CDVType: "ArrayBuffer",
+      },
+    },
+    localName: "IC Bike",
+    manufacturerData: {
+	  // A bunch of garbage except for `IC Bike`
+      bytes: [
+        3,
+        25,
+        0,
+        0,
+        2,
+        1,
+        6,
+        7,
+        3,
+        10,
+        24,
+        22,
+        24,
+        38,
+        24,
+        6,
+        22,
+        38,
+        24,
+        1,
+        32,
+        0,
+        8,
+        9,
+        73,
+        67,
+        32,
+        66,
+        105,
+        107,
+        101,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+      ],
+	  // Basically the same garbage except for `IC Bike`
+      data: "AxkAAAIBBgcDChgWGCYYBhYmGAEgAAgJSUMgQmlrZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      CDVType: "ArrayBuffer",
+    },
+  },
+  rssi: -75,
+  id: "C9:2D:E6:01:54:DD",
+  name: "IC Bike",
+}

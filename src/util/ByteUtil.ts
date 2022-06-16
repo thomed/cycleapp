@@ -21,4 +21,14 @@ export class ByteUtil {
         let buffer = Buffer.from(bytes);
         return buffer.readUInt32LE();
     }
+
+    /**
+     * Read int16 bytes into a number.
+     * @param bytes 
+     * @returns 
+     */
+    static ReadSint16(bytes: number[]): number {
+        let buffer = Buffer.from(bytes);
+        return buffer.readInt16LE();
+    }
 }

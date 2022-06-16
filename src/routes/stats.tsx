@@ -6,8 +6,9 @@ import Toast from "react-native-toast-message";
 
 import { bleManagerEmitter, PeripheralContext, RootStackParamList } from "../../App";
 import { Style } from "../styles";
-import { ServiceUuid } from "../enumerations";
+import { CharacteristicUuid, ServiceUuid } from "../enumerations";
 import { CscMeasurement } from "../classes";
+import { IndoorBikeData } from "../classes/indoor-bike-data";
 
 
 export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">) {
@@ -17,7 +18,9 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
     const peripheralContext = useContext(PeripheralContext);
     const [peripheralInfo, setPeripheralInfo] = useState<PeripheralInfo>();
     const [cscMeasurements, setCscMeasurements] = useState<CscMeasurement[]>([]);
-    const [cadence, setCadence] = useState(0);
+
+    const [cadence, setCadence] = useState<number>(0);
+    const [indoorBikeData, setIndoorBikeData] = useState<IndoorBikeData>();
 
     /**
      * This function receives the data from a ble peripheral when a value for a characteristic
@@ -25,15 +28,34 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
      * @param value
      */
     function handleUpdateCharacteristic(value: any) {
+        let service: string = value?.service;
+        let characteristic: string = value?.characteristic;
         let bytes: number[] = value?.value;
+
         if (bytes) {
-            let cscMeasurement = CscMeasurement.FromBytes(bytes);
-            if (cscMeasurement) {
-                if (cscMeasurements.length < maxHistory) {
-                    setCscMeasurements([...cscMeasurements, cscMeasurement]);
-                } else {
-                    setCscMeasurements([...cscMeasurements.slice(1), cscMeasurement]);
-                }
+            switch (service?.substring(4, 8)) {
+                case ServiceUuid.CyclingSpeedCadence:
+                    // CSC characteristic
+                    if (characteristic?.substring(4, 8) === CharacteristicUuid.CSCMeasurement) {
+                        let cscMeasurement = CscMeasurement.FromBytes(bytes);
+                        if (cscMeasurement) {
+                            if (cscMeasurements.length < maxHistory) {
+                                setCscMeasurements([...cscMeasurements, cscMeasurement]);
+                            } else {
+                                setCscMeasurements([...cscMeasurements.slice(1), cscMeasurement]);
+                            }
+                        }
+                    }
+                    break;
+                case ServiceUuid.FitnessMachine:
+                    // IndoorBikeData characteristic
+                    if (characteristic?.substring(4, 8) === CharacteristicUuid.IndoorBikeData) {
+                        let indoorBikeData = IndoorBikeData.FromBytes(bytes);
+                        setIndoorBikeData(indoorBikeData);
+                    }
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -61,15 +83,27 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
     useEffect(() => {
         // If we have peripheral info, start reading/listening to supported services
         if (peripheralInfo) {
-
+            console.log({ peripheralInfo });
             // If the peripheral supports CSC measurement notification then start listening to it
-            let cscMeasurementCharacteristic = peripheralInfo.characteristics?.find(c => c.characteristic === ServiceUuid.CSCMeasurement);
+            let cscMeasurementCharacteristic = peripheralInfo.characteristics?.find(c => c.characteristic === CharacteristicUuid.CSCMeasurement);
             if (cscMeasurementCharacteristic) {
                 BleManager.startNotification(peripheralContext!.peripheral!.id, cscMeasurementCharacteristic.service, cscMeasurementCharacteristic.characteristic)
                     .then(() => {
                         console.log("CSC notification started");
                     }).catch(() => {
                         console.log("Unable to start CSC notification");
+                    });
+            }
+
+            // IndoorBikeData, FitnessMachineStatus, TrainingStatus, FitnessMachineControlPoing(?)
+            let test = peripheralInfo.characteristics?.find(c => c.characteristic === CharacteristicUuid.IndoorBikeData);
+            if (test && test.properties.Notify) {
+                let service = ServiceUuid.FitnessMachine;
+                BleManager.startNotification(peripheralContext!.peripheral!.id, service, test.characteristic)
+                    .then(() => {
+                        console.log("Test notification started")
+                    }).catch(() => {
+                        console.log("Unable to stop CSC notification")
                     });
             }
         }
@@ -79,13 +113,24 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
             if (peripheralInfo) {
 
                 // If the peripheral supports CSC measurement notification then stop listening to it
-                let cscMeasurementCharacteristic = peripheralInfo.characteristics?.find(c => c.characteristic === ServiceUuid.CSCMeasurement);
+                let cscMeasurementCharacteristic = peripheralInfo.characteristics?.find(c => c.characteristic === CharacteristicUuid.CSCMeasurement);
                 if (cscMeasurementCharacteristic) {
                     BleManager.stopNotification(peripheralContext!.peripheral!.id, cscMeasurementCharacteristic.service, cscMeasurementCharacteristic.characteristic)
                         .then(() => {
                             console.log("CSC notification stopped.")
                         }).catch(() => {
                             console.log("Unable to stop CSC notification");
+                        });
+                }
+
+                let test = peripheralInfo.characteristics?.find(c => c.characteristic === CharacteristicUuid.IndoorBikeData);
+                if (test && test.properties.Notify) {
+                    let service = ServiceUuid.FitnessMachine;
+                    BleManager.stopNotification(peripheralContext!.peripheral!.id, service, test.characteristic)
+                        .then(() => {
+                            console.log("Test notification stopped")
+                        }).catch(() => {
+                            console.log("Unable to stop test notification")
                         });
                 }
             }
@@ -120,7 +165,20 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
 
     return (
         <View style={[Style.bodyDark, { flex: 1, alignItems: "center" }]}>
-            <Text style={[Style.textXXLarge]}>{cadence}</Text>
+            <View style={[Style.section]}>
+                <Text style={[Style.textXXLarge]}>{cadence}</Text>
+            </View>
+            {indoorBikeData &&
+                <>
+                    <View style={[Style.section]}>
+                        <Text style={[Style.textXXLarge]}>{indoorBikeData.averageSpeedMph}</Text>
+                    </View>
+                    <View style={[Style.section]}>
+                        <Text style={[Style.textXXLarge]}>{indoorBikeData.instantaneousPower}</Text>
+                    </View>
+                </>
+            }
+
 
             {/* Used to display some debug info on screen */}
             {debug &&

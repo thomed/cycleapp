@@ -7,7 +7,5 @@ export enum ServiceUuid {
     DeviceInformation = "180a",
     HeartRate = "180d",
     CyclingSpeedCadence = "1816",
-    FitnessMachine = "1826",
-    SCControlPoint = "2a55",
-    CSCMeasurement = "2a5b"
+    FitnessMachine = "1826"
 }

@@ -17,7 +17,7 @@ export function Home(props: NativeStackScreenProps<RootStackParamList, "Home">) 
         <View style={[Style.bodyDark, { flex: 1, alignItems: 'center' }]}>
             {peripheralContext.peripheral &&
                 <View>
-                    <Text style={[Style.textLarge, {color: "#00bbcc"}]}>
+                    <Text style={[Style.textLarge, { color: "#00bbcc" }]}>
                         Connected to {peripheralContext.peripheral.name}
                     </Text>
                 </View>
@@ -32,7 +32,14 @@ export function Home(props: NativeStackScreenProps<RootStackParamList, "Home">) 
                     </View>
                 </>
             }
-            <Button title="Manage peripheral" onPress={() => navigation.navigate("Peripherals")} />
+            <View style={[Style.well]}>
+                <View style={[Style.section]}>
+                    <Button title="Manage peripheral" onPress={() => navigation.navigate("Peripherals")} />
+                </View>
+                <View style={[Style.section]}>
+                    <Button title={"Stats"} onPress={() => navigation.navigate("Stats")} disabled={!peripheralContext || !peripheralContext.peripheral} />
+                </View>
+            </View>
         </View>
     );
 }

@@ -1,233 +1,140 @@
-import React, { useEffect, useState } from "react";
-import { Button, EmitterSubscription, NativeEventEmitter, NativeModules, PermissionsAndroid, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import BleManager, { Characteristic, Peripheral, PeripheralInfo } from 'react-native-ble-manager';
+import React, { useContext, useEffect, useState } from "react";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Text, View } from "react-native";
+import BleManager, { PeripheralInfo } from "react-native-ble-manager";
+import Toast from "react-native-toast-message";
 
+import { bleManagerEmitter, PeripheralContext, RootStackParamList } from "../../App";
 import { Style } from "../styles";
-import { ServiceUuid } from "../enumerations/service-uuid";
-import { CscMeasurement } from "../classes/csc-measurement";
-import { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
-import { bleManagerEmitter, RootStackParamList } from "../../App";
+import { ServiceUuid } from "../enumerations";
+import { CscMeasurement } from "../classes";
 
 
-export function Stats(props: NativeStackScreenProps<RootStackParamList, 'Stats'>) {
-    const maxHistory = 2;
-
-    const [peripheral, setPeripheral] = useState<Peripheral>();
+export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">) {
+    const maxHistory = 10;
+    const debug = true;
+    const { navigation, route } = props;
+    const peripheralContext = useContext(PeripheralContext);
     const [peripheralInfo, setPeripheralInfo] = useState<PeripheralInfo>();
-    // const [cscMeasurement, setCscMeasurement] = useState<CscMeasurement>();
-    const [cscMeasurements, setCscMeasurements] = useState<CscMeasurement[]>(new Array<CscMeasurement>());
-
-    function startScan() {
-        console.log("scan started");
-        BleManager.scan([], 10, false);
-    }
-
-    function handleScanStop() {
-        console.log("scan stopped");
-
-        BleManager.getDiscoveredPeripherals().then((peripherals) => {
-            // peripherals.forEach((p) => {
-            //   console.log(`${p.name}: ${p.id}`);
-            // })
-
-            let icBike = peripherals.find(p => p.name === "IC Bike");
-            if (icBike) {
-                console.log("Found IC Bike. Trying to connect...");
-                BleManager.connect(icBike.id).then(() => {
-                    setPeripheral(icBike);
-                    console.log("connected to bike");
-                }).catch((error) => {
-                    console.log({ error });
-                });
-            } else {
-                console.log("No IC Bike found");
-            }
-        });
-    }
-
-    function handlePeripheralConnect(peripheral: Peripheral) {
-        console.log("connected peripheral:");
-        console.log(peripheral);
-
-        BleManager.retrieveServices(peripheral.id).then((info) => {
-            console.log("Peripheral info:", info);
-        });
-    }
+    const [cscMeasurements, setCscMeasurements] = useState<CscMeasurement[]>([]);
+    const [cadence, setCadence] = useState(0);
 
     /**
-     * Link below for value specification
-     * https://github.com/oesmith/gatt-xml/blob/master/org.bluetooth.characteristic.csc_measurement.xml
-     * Sample: [3, 215, 2, 0, 0, 185, 51, 220, 0, 120, 217]
-     * @param value 
+     * This function receives the data from a ble peripheral when a value for a characteristic
+     * is updated and we are listening for ble notifications.
+     * @param value
      */
-    function handleCSCMeasurementUpdate(value: any) {
+    function handleUpdateCharacteristic(value: any) {
         let bytes: number[] = value?.value;
         if (bytes) {
-            // console.log(bytes);
             let cscMeasurement = CscMeasurement.FromBytes(bytes);
-            // setCscMeasurement(cscMeasurement);
-
             if (cscMeasurement) {
-
-                // TODO: Weird bug around here
-                // Save CSC measurement
                 if (cscMeasurements.length < maxHistory) {
-                    console.log(cscMeasurements.length);
-                    // setCscMeasurements(cscMeasurements.concat(cscMeasurement));
                     setCscMeasurements([...cscMeasurements, cscMeasurement]);
                 } else {
-                    console.log("replace");
-                    setCscMeasurements([...(cscMeasurements.slice(1)), cscMeasurement]);
-                    // setCscMeasurements(cscMeasurements.slice(1).concat(cscMeasurement));
+                    setCscMeasurements([...cscMeasurements.slice(1), cscMeasurement]);
                 }
             }
-
         }
     }
 
-    function readPeripheral() {
-        if (peripheral) {
+    useEffect(() => {
+        // If no peripheral connected then navigate back home
+        if (!peripheralContext?.peripheral) {
+            navigation.navigate("Home");
+        } else {
+            let peripheral = peripheralContext.peripheral;
+
+            // Get peripheral services
             BleManager.retrieveServices(peripheral.id, peripheral.advertising.serviceUUIDs)
-                .then(info => {
-                    setPeripheralInfo(info);
-                    console.log({ info });
-
-
-                    let characteristicsByService = new Map<string, Characteristic[]>();
-                    info.services?.forEach(s => {
-                        characteristicsByService.set(s.uuid, info.characteristics?.filter(c => c.service === s.uuid) || []);
+                .then((v) => {
+                    setPeripheralInfo(v);
+                }).catch((reason) => {
+                    Toast.show({
+                        type: "error",
+                        text1: "Couldn't get peripheral info."
                     });
-                    console.log({ characteristicsByService });
-
-                    // Read characteristics for the service uuid specified
-                    // let uuid = ServiceUuid.CyclingSpeedCadence;
-                    // characteristicsByService.get(uuid)?.filter(c => c.properties.Read)?.forEach(s => {
-                    //   console.log({ s });
-                    //   BleManager.read(peripheral.id, uuid, s.characteristic).then(r => {
-                    //     if (r) {
-                    //       let buffer = Buffer.from(r);
-                    //       let data = buffer.toJSON();
-                    //       console.log({ data });
-                    //     }
-                    //   });
-                    // });
-
                 });
         }
-    }
-
-    function getCadence() {
-        if (cscMeasurements.length < 2) {
-            return 0;
-        }
-
-        let current = cscMeasurements.at(-1);
-        let previous = cscMeasurements.at(-2);
-
-        let crankDiff = current!.cumulativeCrankRevolutions - previous!.cumulativeCrankRevolutions;
-        let timeDiff = current!.lastCrankEventTime - previous!.lastCrankEventTime;
-
-        if (crankDiff <= 0 || timeDiff <= 0) {
-            // console.log({ timeDiff });
-            return 0;
-        }
-
-        // Value is measured in 1/1024 of a second
-        // let seconds = 1024 / timeDiff;
-        // console.log(timeDiff);
-        // return ((crankDiff * seconds) * 60).toPrecision(4);
-
-        // Time value is measured in 1/1024 of a second
-        // return (crankDiff / (timeDiff * 60 * 1024)).toFixed();
-        return (crankDiff / (timeDiff * 60 * 1024));
-    }
+    }, [peripheralContext]);
 
     useEffect(() => {
-        console.log({ cscMeasurements });
-    }, [cscMeasurements]);
+        // If we have peripheral info, start reading/listening to supported services
+        if (peripheralInfo) {
 
-    useEffect(() => {
-        if (peripheral && peripheralInfo) {
-            // Check for a CSC measurement characteristic support
+            // If the peripheral supports CSC measurement notification then start listening to it
             let cscMeasurementCharacteristic = peripheralInfo.characteristics?.find(c => c.characteristic === ServiceUuid.CSCMeasurement);
-            // console.log(cscMeasurementCharacteristic);
-
             if (cscMeasurementCharacteristic) {
-                BleManager.startNotification(peripheral.id, cscMeasurementCharacteristic.service, cscMeasurementCharacteristic?.characteristic)
+                BleManager.startNotification(peripheralContext!.peripheral!.id, cscMeasurementCharacteristic.service, cscMeasurementCharacteristic.characteristic)
                     .then(() => {
                         console.log("CSC notification started");
+                    }).catch(() => {
+                        console.log("Unable to start CSC notification");
                     });
-
             }
         }
-    }, [peripheral, peripheralInfo]);
+
+        return (() => {
+            // If we have peripheral info, clean up readers/listeners
+            if (peripheralInfo) {
+
+                // If the peripheral supports CSC measurement notification then stop listening to it
+                let cscMeasurementCharacteristic = peripheralInfo.characteristics?.find(c => c.characteristic === ServiceUuid.CSCMeasurement);
+                if (cscMeasurementCharacteristic) {
+                    BleManager.stopNotification(peripheralContext!.peripheral!.id, cscMeasurementCharacteristic.service, cscMeasurementCharacteristic.characteristic)
+                        .then(() => {
+                            console.log("CSC notification stopped.")
+                        }).catch(() => {
+                            console.log("Unable to stop CSC notification");
+                        });
+                }
+            }
+        });
+    }, [peripheralInfo]);
 
     useEffect(() => {
-        const scanStop: EmitterSubscription = bleManagerEmitter.addListener('BleManagerStopScan', handleScanStop);
-        // const deviceDiscovered: EmitterSubscription = bleManagerEmitter.addListener('BleManagerDiscoverPeripheral', handleDeviceDiscovered);
-        const peripheralConnected: EmitterSubscription = bleManagerEmitter.addListener('BleManagerConnectPeripheral', handlePeripheralConnect);
-        const notifyValueUpdated: EmitterSubscription = bleManagerEmitter.addListener('BleManagerDidUpdateValueForCharacteristic', handleCSCMeasurementUpdate);
+        // If we have at least 2 measurements then calculate current cadence
+        if (cscMeasurements.length > 1) {
+            let current = cscMeasurements.at(-1);
+            let previous = cscMeasurements.at(-2);
+
+            let crankDiff = current!.cumulativeCrankRevolutions - previous!.cumulativeCrankRevolutions;
+            let wheelDiff = current!.cumulativeWheelRevolutions - previous!.cumulativeWheelRevolutions;
+            let timeDiff = current!.lastCrankEventTime - previous!.lastCrankEventTime;
+
+            if (crankDiff <= 0 || timeDiff <= 0) {
+                setCadence(0);
+            } else {
+                let c = (crankDiff / timeDiff) * 60 * 1024;
+                setCadence(Math.floor(c));
+            }
+        }
+
+        // When recorded history changed we need to update handler
+        const valueUpdated = bleManagerEmitter.addListener("BleManagerDidUpdateValueForCharacteristic", handleUpdateCharacteristic);
 
         return () => {
-            scanStop.remove();
-            // deviceDiscovered.remove();
-            peripheralConnected.remove();
-            notifyValueUpdated.remove();
+            valueUpdated.remove();
         };
-    }, []);
+    }, [cscMeasurements]);
 
     return (
-        <ScrollView contentInsetAdjustmentBehavior="automatic" style={[Style.bodyDark]}>
-            <View>
-                <Button title='Scan' onPress={startScan} />
-            </View>
+        <View style={[Style.bodyDark, { flex: 1, alignItems: "center" }]}>
+            <Text style={[Style.textXXLarge]}>{cadence}</Text>
 
-            {/* Connected device info */}
-            {peripheral &&
-                <View>
-                    <Text>Bike found</Text>
-                    <Text>Name: {peripheral.name}</Text>
-                    <Text>ID: {peripheral.id}</Text>
-                    <Button title='Read' onPress={readPeripheral} />
+            {/* Used to display some debug info on screen */}
+            {debug &&
+                <View style={[Style.well, Style.section, { width: "95%" }]}>
+                    <Text>Debug</Text>
+                    <Text>History length: {cscMeasurements.length}</Text>
+                    <Text>
+                        Cranks: {cscMeasurements.at(-1)?.cumulativeCrankRevolutions}
+                    </Text>
+                    <Text>
+                        Wheels: {cscMeasurements.at(-1)?.cumulativeWheelRevolutions}
+                    </Text>
                 </View>
             }
-
-            {/* CSC measurement data */}
-            {cscMeasurements.length > 1 &&
-                <>
-                    <View style={styles.well}>
-                        <View style={[Style.section]}>
-                            <Text style={Style.textLarge}>Wheel: {cscMeasurements.at(-1)?.cumulativeWheelRevolutions}</Text>
-                            <Text style={Style.textLarge}>Time: {cscMeasurements.at(-1)?.lastWheelEventTime}</Text>
-                        </View>
-                        <View>
-                            <Text style={Style.textLarge}>Crank: {cscMeasurements.at(-1)?.cumulativeCrankRevolutions}</Text>
-                            <Text style={Style.textLarge}>Time: {cscMeasurements.at(-1)?.lastCrankEventTime}</Text>
-                        </View>
-                    </View>
-                    <View style={styles.well}>
-                        <View style={[Style.section]}>
-                            <Text style={Style.textLarge}>Wheel: {cscMeasurements.at(-2)?.cumulativeWheelRevolutions}</Text>
-                            <Text style={Style.textLarge}>Time: {cscMeasurements.at(-2)?.lastWheelEventTime}</Text>
-                        </View>
-                        <View>
-                            <Text style={Style.textLarge}>Crank: {cscMeasurements.at(-2)?.cumulativeCrankRevolutions}</Text>
-                            <Text style={Style.textLarge}>Time: {cscMeasurements.at(-2)?.lastCrankEventTime}</Text>
-                        </View>
-                    </View>
-                    <View>
-                        <Text style={{ fontSize: 128 }}>C: {getCadence()}</Text>
-                    </View>
-                </>
-            }
-        </ScrollView>
+        </View>
     );
 }
-
-const styles = StyleSheet.create({
-    well: {
-        backgroundColor: "#555555",
-        padding: 5,
-        margin: 5
-    }
-});

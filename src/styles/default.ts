@@ -12,7 +12,10 @@ const colors = {
 const nums = {
     spaceMedium: 5,
     fontNormal: 24,
-    fontLarge: 32
+    fontLarge: 32,
+    fontXLarge: 64,
+    fontXXLarge: 128,
+    fontXtreme: 256
 }
 
 export const Style = StyleSheet.create({
@@ -33,6 +36,15 @@ export const Style = StyleSheet.create({
     },
     textLarge: {
         fontSize: nums.fontLarge
+    },
+    textXLarge: {
+        fontSize: nums.fontXLarge
+    },
+    textXXLarge: {
+        fontSize: nums.fontXXLarge
+    },
+    textXtreme: {
+        fontSize: nums.fontXtreme
     },
     well: {
         backgroundColor: colors.bgMedium,

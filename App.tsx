@@ -50,6 +50,10 @@ function App() {
     if (peripheral && id === peripheral.id) {
       setPeripheral(undefined);
       setPeripheralInfo(undefined);
+      Toast.show({
+        type: "info",
+        text1: "Device disconnected"
+      });
     }
   }
 

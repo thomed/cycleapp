@@ -10,6 +10,10 @@ export class CscMeasurement {
     cumulativeCrankRevolutions: number = -1;
     lastCrankEventTime: number = -1;
 
+    /**
+     * Used to initialize a CscMeasurment object using the bytes read from a bluetooth peripheral.
+     * @param bytes Array of byte values
+     */
     static FromBytes(bytes: number[]): CscMeasurement {
         let result = new CscMeasurement();
 

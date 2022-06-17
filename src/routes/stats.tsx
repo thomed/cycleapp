@@ -4,8 +4,10 @@ import { Text, View } from "react-native";
 import BleManager, { PeripheralInfo } from "react-native-ble-manager";
 import Toast from "react-native-toast-message";
 
+import "core-js/modules/es.array.at";
+
 import { bleManagerEmitter, PeripheralContext, RootStackParamList } from "../../App";
-import { Style } from "../styles";
+import { Style, Window } from "../styles";
 import { CharacteristicUuid, ServiceUuid } from "../enumerations";
 import { CscMeasurement } from "../classes";
 import { IndoorBikeData } from "../classes/indoor-bike-data";
@@ -13,7 +15,7 @@ import { IndoorBikeData } from "../classes/indoor-bike-data";
 
 export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">) {
     const maxHistory = 10;
-    const debug = true;
+    const debug = false;
     const { navigation, route } = props;
     const peripheralContext = useContext(PeripheralContext);
     const [peripheralInfo, setPeripheralInfo] = useState<PeripheralInfo>();
@@ -21,6 +23,8 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
 
     const [cadence, setCadence] = useState<number>(0);
     const [indoorBikeData, setIndoorBikeData] = useState<IndoorBikeData>();
+
+    let minSectionWidth = Window.width / 2;
 
     /**
      * This function receives the data from a ble peripheral when a value for a characteristic
@@ -95,11 +99,12 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
                     });
             }
 
-            // IndoorBikeData, FitnessMachineStatus, TrainingStatus, FitnessMachineControlPoing(?)
-            let test = peripheralInfo.characteristics?.find(c => c.characteristic === CharacteristicUuid.IndoorBikeData);
-            if (test && test.properties.Notify) {
+            // IndoorBikeData, FitnessMachineStatus, TrainingStatus, FitnessMachineControlPoint(?)
+            // If the peripheral supports IndoorBikeData notification then start listening to it
+            let indoorBikeDataCharacteristic = peripheralInfo.characteristics?.find(c => c.characteristic === CharacteristicUuid.IndoorBikeData);
+            if (indoorBikeDataCharacteristic && indoorBikeDataCharacteristic.properties.Notify) {
                 let service = ServiceUuid.FitnessMachine;
-                BleManager.startNotification(peripheralContext!.peripheral!.id, service, test.characteristic)
+                BleManager.startNotification(peripheralContext!.peripheral!.id, service, indoorBikeDataCharacteristic.characteristic)
                     .then(() => {
                         console.log("Test notification started")
                     }).catch(() => {
@@ -164,20 +169,34 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
     }, [cscMeasurements]);
 
     return (
-        <View style={[Style.bodyDark, { flex: 1, alignItems: "center" }]}>
-            <View style={[Style.section]}>
-                <Text style={[Style.textXXLarge]}>{cadence}</Text>
+        <View style={[Style.bodyDark, { flex: 1, alignItems: "center", flexDirection: "column" }]}>
+
+            <View style={{ flex: 1, padding: 12, flexDirection: "row", flexWrap: "wrap" }}>
+
+                <View style={[Style.section, { minWidth: minSectionWidth, width: "auto", alignItems: "flex-end", flexGrow: 1 }]}>
+                    <Text style={[Style.text, { alignSelf: "flex-start" }]}>Cadence</Text>
+                    <Text style={[Style.textXXLarge]}>{cadence}</Text>
+                </View>
+
+                {indoorBikeData &&
+                    <>
+                        <View style={[Style.section, { minWidth: minSectionWidth , alignItems: "flex-end", flexGrow: 1 }]}>
+                            <Text style={[Style.text, { alignSelf: "flex-start" }]}>Speed (mph)</Text>
+                            <Text style={[Style.textXXLarge, { marginBottom: 0, paddingBottom: 0 }]}>
+                                {indoorBikeData.averageSpeedMph}
+                                {/* <View style={{ height: "100%" }}>
+                                    <Text>mph</Text>
+                                </View> */}
+                            </Text>
+                        </View>
+                        <View style={[Style.section, { minWidth: minSectionWidth, alignItems: "flex-end", flexGrow: 1 }]}>
+                            <Text style={[Style.text, { alignSelf: "flex-start" }]}>Power</Text>
+                            <Text style={[Style.textXXLarge]}>{indoorBikeData.instantaneousPower}</Text>
+                        </View>
+                    </>
+                }
+
             </View>
-            {indoorBikeData &&
-                <>
-                    <View style={[Style.section]}>
-                        <Text style={[Style.textXXLarge]}>{indoorBikeData.averageSpeedMph}</Text>
-                    </View>
-                    <View style={[Style.section]}>
-                        <Text style={[Style.textXXLarge]}>{indoorBikeData.instantaneousPower}</Text>
-                    </View>
-                </>
-            }
 
 
             {/* Used to display some debug info on screen */}

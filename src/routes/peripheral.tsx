@@ -46,10 +46,10 @@ export function Peripherals(props: NativeStackScreenProps<RootStackParamList, "P
                 Toast.show({
                     type: "info",
                     text1: "Connected!",
-                    visibilityTime: 400
+                    visibilityTime: 1000
                 });
-                // TODO: Get peripheral info
                 peripheralContext.setPeripheral(peripheral);
+                props.navigation.navigate("Home");
             }).catch((error) => {
                 Toast.show({
                     type: "error",

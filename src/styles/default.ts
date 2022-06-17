@@ -1,7 +1,5 @@
 import { Dimensions, StyleSheet } from "react-native";
 
-let Window = Dimensions.get("window");
-
 const colors = {
     bgHeader: "#363636",
     bgMedium: "#555555",

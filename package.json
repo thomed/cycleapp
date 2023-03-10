@@ -21,7 +21,8 @@
     "react-native-screens": "^3.13.1",
     "react-native-svg": "^12.3.0",
     "react-native-svg-transformer": "^1.0.0",
-    "react-native-toast-message": "^2.1.5"
+    "react-native-toast-message": "^2.1.5",
+    "victory-native": "^36.5.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",

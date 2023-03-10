@@ -9,6 +9,7 @@ import { Style } from "../styles";
 import { bleManagerEmitter } from "../../App";
 import { ServiceUuid } from "../enumerations";
 import { PeripheralCard } from "../components/peripheral-card";
+import { VictoryLabel, VictoryLine } from "victory-native";
 
 export function Peripherals(props: NativeStackScreenProps<RootStackParamList, "Peripherals">) {
     const peripheralContext = useContext(PeripheralContext)!;

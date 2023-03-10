@@ -1,16 +1,16 @@
 import React, { useContext, useEffect, useState } from "react";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import BleManager, { PeripheralInfo } from "react-native-ble-manager";
 import Toast from "react-native-toast-message";
 
 import "core-js/modules/es.array.at";
 
 import { bleManagerEmitter, PeripheralContext, RootStackParamList } from "../../App";
-import { Style, Window } from "../styles";
+import { StatsStyle, Style, Window } from "../styles";
 import { CharacteristicUuid, ServiceUuid } from "../enumerations";
-import { CscMeasurement } from "../classes";
-import { IndoorBikeData } from "../classes/indoor-bike-data";
+import { CscMeasurement, IndoorBikeData } from "../classes";
+import { VictoryChart, VictoryLine } from "victory-native";
 
 
 export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">) {
@@ -23,8 +23,6 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
 
     const [cadence, setCadence] = useState<number>(0);
     const [indoorBikeData, setIndoorBikeData] = useState<IndoorBikeData>();
-
-    let minSectionWidth = Window.width / 2;
 
     /**
      * This function receives the data from a ble peripheral when a value for a characteristic
@@ -173,25 +171,54 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
 
             <View style={{ flex: 1, padding: 12, flexDirection: "row", flexWrap: "wrap" }}>
 
-                <View style={[Style.section, { minWidth: minSectionWidth, width: "auto", alignItems: "flex-end", flexGrow: 1 }]}>
-                    <Text style={[Style.text, { alignSelf: "flex-start" }]}>Cadence</Text>
-                    <Text style={[Style.textXXLarge]}>{cadence}</Text>
+                <View style={[Style.section, StatsStyle.infoCard]}>
+                    {/* <View style={
+                        {
+                            zIndex: -100,
+                            height: "100%",
+                            width: "100%",
+                            position: "absolute",
+                            padding: 0
+                        }
+                    }>
+                        <VictoryLine
+                            style={{
+                                data: {},
+                                parent: {},
+                                labels: {}
+                                // data: { maxHeight: "100%", maxWidth: "100%" }
+                            }}
+                            theme={{
+                                line: {
+                                    style: {
+                                        data: {
+                                            stroke: "red",
+                                        }
+                                    }
+                                }
+                            }}
+                            data={[{ x: 0, y: 1 }, { x: 2, y: 1 }]}
+                        />
+                    </View> */}
+                    <View style={[StatsStyle.infoCardFg]}>
+                        <Text style={[Style.text, StatsStyle.infoTitle]}>Cadence</Text>
+                        <Text style={[Style.textXXLarge, StatsStyle.infoValue]}>{cadence}</Text>
+                    </View>
                 </View>
 
                 {indoorBikeData &&
                     <>
-                        <View style={[Style.section, { minWidth: minSectionWidth , alignItems: "flex-end", flexGrow: 1 }]}>
-                            <Text style={[Style.text, { alignSelf: "flex-start" }]}>Speed (mph)</Text>
-                            <Text style={[Style.textXXLarge, { marginBottom: 0, paddingBottom: 0 }]}>
-                                {indoorBikeData.averageSpeedMph}
-                                {/* <View style={{ height: "100%" }}>
-                                    <Text>mph</Text>
-                                </View> */}
-                            </Text>
+                        <View style={[Style.section, StatsStyle.infoCard]}>
+                            <View style={[StatsStyle.infoCardFg]}>
+                                <Text style={[Style.text, StatsStyle.infoTitle]}>Speed (mph)</Text>
+                                <Text style={[Style.textXXLarge, StatsStyle.infoValue]}>{indoorBikeData.averageSpeedMph}</Text>
+                            </View>
                         </View>
-                        <View style={[Style.section, { minWidth: minSectionWidth, alignItems: "flex-end", flexGrow: 1 }]}>
-                            <Text style={[Style.text, { alignSelf: "flex-start" }]}>Power</Text>
-                            <Text style={[Style.textXXLarge]}>{indoorBikeData.instantaneousPower}</Text>
+                        <View style={[Style.section, StatsStyle.infoCard]}>
+                            <View style={[StatsStyle.infoCardFg]}>
+                                <Text style={[Style.text, StatsStyle.infoTitle]}>Power</Text>
+                                <Text style={[Style.textXXLarge, StatsStyle.infoValue]}>{indoorBikeData.instantaneousPower}</Text>
+                            </View>
                         </View>
                     </>
                 }
@@ -200,7 +227,8 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
 
 
             {/* Used to display some debug info on screen */}
-            {debug &&
+            {
+                debug &&
                 <View style={[Style.well, Style.section, { width: "95%" }]}>
                     <Text>Debug</Text>
                     <Text>History length: {cscMeasurements.length}</Text>
@@ -212,6 +240,6 @@ export function Stats(props: NativeStackScreenProps<RootStackParamList, "Stats">
                     </Text>
                 </View>
             }
-        </View>
+        </View >
     );
 }

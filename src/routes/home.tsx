@@ -7,6 +7,7 @@ import { Style } from "../styles";
 
 import BluetoothIcon from "../assets/icons/bluetooth-outline.svg";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { VictoryChart, VictoryLine, VictoryTheme } from "victory-native";
 
 export function Home(props: NativeStackScreenProps<RootStackParamList, "Home">) {
     const { navigation, route } = props;

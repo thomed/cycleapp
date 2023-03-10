@@ -1,19 +1,22 @@
 import { Dimensions, StyleSheet } from "react-native";
 
-const colors = {
+export const colors = {
     bgHeader: "#363636",
     bgMedium: "#555555",
     bgDark: "#292929",
-    fontLight: "#dddddd"
+    fontLight: "#dddddd",
+    fontMedium: "#6a6a6a"
 };
 
-const nums = {
-    spaceMedium: 5,
-    fontNormal: 24,
+export const nums = {
+    borderRadius: 3,
+    borderWidth: 2,
+    fontNormal: 20,
     fontLarge: 32,
     fontXLarge: 64,
     fontXXLarge: 128,
-    fontXtreme: 256
+    fontXtreme: 256,
+    spaceMedium: 5,
 }
 
 export const Style = StyleSheet.create({
